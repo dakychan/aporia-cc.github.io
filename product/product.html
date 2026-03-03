@@ -275,9 +275,9 @@
 
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
-            max-width: 1200px;
+            max-width: 700px;
         }
 
         .pricing-card {
@@ -889,13 +889,6 @@
             font-family: 'Unbounded', sans-serif;
         }
 
-        @media (max-width: 1100px) {
-            .pricing-grid {
-                grid-template-columns: repeat(2, 1fr);
-                max-width: 600px;
-            }
-        }
-
         @media (max-width: 768px) {
             .pricing-header h1 {
                 font-size: 2rem;
@@ -956,38 +949,6 @@
 
         <div class="pricing-grid">
             <div class="pricing-card">
-                <img src="../client.png" alt="1 месяц" class="card-logo">
-                <div class="card-header">
-                    <h3>Клиент на месяц</h3>
-                    <p>Доступ к клиенту на месяц.</p>
-                </div>
-                <div class="card-price">
-                    <div class="price-row">
-                        <span class="price-amount" id="price-month">199</span>
-                        <span class="price-currency">₽</span>
-                    </div>
-                    <div class="price-period">/ 30 дней</div>
-                </div>
-                <button class="btn-pricing" data-product="month">Купить</button>
-            </div>
-
-            <div class="pricing-card">
-                <img src="../client.png" alt="90 дней" class="card-logo">
-                <div class="card-header">
-                    <h3>Клиент на 90 дней</h3>
-                    <p>Доступ к клиенту на 90 дней.</p>
-                </div>
-                <div class="card-price">
-                    <div class="price-row">
-                        <span class="price-amount" id="price-90days">299</span>
-                        <span class="price-currency">₽</span>
-                    </div>
-                    <div class="price-period">/ 90 дней</div>
-                </div>
-                <button class="btn-pricing" data-product="90days">Купить</button>
-            </div>
-
-            <div class="pricing-card">
                 <img src="../client.png" alt="Навсегда" class="card-logo">
                 <div class="card-header">
                     <h3>Клиент навсегда</h3>
@@ -995,16 +956,16 @@
                 </div>
                 <div class="card-price">
                     <div class="price-row">
-                        <span class="price-amount" id="price-lifetime">599</span>
+                        <span class="price-amount">0</span>
                         <span class="price-currency">₽</span>
                     </div>
-                    <div class="price-period">/ ∞ дней</div>
+                    <div class="price-period">/ lifetime</div>
                 </div>
-                <button class="btn-pricing" data-product="lifetime">Купить</button>
+                <a href="https://release-assets.githubusercontent.com/github-production-release-asset/1152896862/caed59fe-3b64-434e-856f-318ac9c137a4?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-03-03T16%3A26%3A14Z&rscd=attachment%3B+filename%3DAporia-0.4.jar&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-03-03T15%3A26%3A01Z&ske=2026-03-03T16%3A26%3A14Z&sks=b&skv=2018-11-09&sig=ZXEjJovNsGI8YpSgIcy7q05SvRqjdP0vdVqO5NoEyuw%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc3MjU1NDQ1MSwibmJmIjoxNzcyNTUyNjUxLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.u18uGakhkYLQ_NwKzdtXIQITcBmYSXeKGRVeJlzP9rE&response-content-disposition=attachment%3B%20filename%3DAporia-0.4.jar&response-content-type=application%2Foctet-stream" class="btn-pricing" download>Скачать</a>
             </div>
 
             <div class="pricing-card">
-                <img src="../client.png" alt="HWID Reset" class="card-logo">
+                <img src="../client.png" alt="Сброс HWID" class="card-logo">
                 <div class="card-header">
                     <h3>Сброс HWID</h3>
                     <p>Сброс привязки к устройству.</p>
@@ -1281,9 +1242,9 @@ let currentProduct = { name: '', price: 0 };
                 return;
             }
 
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = '/index.html#login';
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                window.location.href = '../index.html';
                 return;
             }
 
@@ -1292,25 +1253,17 @@ let currentProduct = { name: '', price: 0 };
             promoMessage.textContent = '';
             promoMessage.className = 'promo-message';
 
-            try {
-                const response = await fetch(`${CONFIG.clientLinkUrl}/user/discount?promo=${code}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
+            // Mock promo validation for cookie-based auth
+            // You can add promo codes to localStorage if needed
+            const promoCodes = {
+                'DISCOUNT10': 10,
+                'DISCOUNT20': 20,
+                'DISCOUNT50': 50
+            };
 
-                if (response.status === 401) {
-                    localStorage.removeItem('token');
-                    window.location.href = '/index.html#login';
-                    return;
-                }
-
-                const data = await response.json();
-
-                if (data.success && typeof data.success === 'number') {
-                    appliedDiscount = data.success;
+            setTimeout(() => {
+                if (promoCodes[code]) {
+                    appliedDiscount = promoCodes[code];
                     appliedPromoCode = code;
                     
                     const discountAmount = Math.round(currentProduct.price * (appliedDiscount / 100));
@@ -1330,18 +1283,10 @@ let currentProduct = { name: '', price: 0 };
                     document.getElementById('discountRow').style.display = 'none';
                     document.getElementById('totalValue').textContent = currentProduct.price + ' ₽';
                 }
-            } catch (error) {
-                console.error('Promo error:', error);
-                promoMessage.textContent = 'Промокод истёк';
-                promoMessage.className = 'promo-message error';
-                appliedDiscount = null;
-                appliedPromoCode = '';
-                document.getElementById('discountRow').style.display = 'none';
-                document.getElementById('totalValue').textContent = currentProduct.price + ' ₽';
-            } finally {
+                
                 promoApplyBtn.disabled = false;
                 promoApplyBtn.textContent = 'Применить';
-            }
+            }, 500);
         }
 
         async function processPayment() {
@@ -1352,9 +1297,9 @@ let currentProduct = { name: '', price: 0 };
 
             if (isProcessing) return;
 
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = '/index.html#login';
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                window.location.href = '../index.html';
                 return;
             }
 
@@ -1364,58 +1309,9 @@ let currentProduct = { name: '', price: 0 };
                 return;
             }
 
-            isProcessing = true;
-            document.getElementById('payButton').disabled = true;
-            document.getElementById('payButtonText').textContent = 'Обработка...';
-
-            try {
-                let endpoint;
-                if (selectedPayment === 'freekassa') {
-                    endpoint = '/payment/createFreekassa'; 
-                } else if (selectedPayment === 'monee') {
-                    endpoint = '/payment/createMonee';
-                } else {
-                    throw new Error('Неизвестный способ оплаты');
-                }
-                
-                let url = `${CONFIG.clientLinkUrl}${endpoint}?type=${subscriptionType}`;
-                
-                if (appliedDiscount !== null && appliedPromoCode) {
-                    url += `&promocode=${appliedPromoCode}`;
-                }
-
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.status === 401) {
-                    localStorage.removeItem('token');
-                    window.location.href = '/index.html#login';
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error('Ошибка при создании платежа');
-                }
-
-                const data = await response.json();
-
-                if (data.success && data.payment_url) {
-                    window.location.href = data.payment_url;
-                } else {
-                    throw new Error('Некорректный ответ от сервера');
-                }
-            } catch (error) {
-                console.error('Payment error:', error);
-                alert('Произошла ошибка при создании платежа. Попробуйте позже.');
-                isProcessing = false;
-                document.getElementById('payButton').disabled = false;
-                document.getElementById('payButtonText').textContent = 'Оплатить';
-            }
+            // For cookie-based auth, just show alert
+            alert('Оплата временно недоступна. Используйте прямую ссылку для скачивания клиента.');
+            closePaymentModal();
         }
 
         document.getElementById('paymentModal').addEventListener('click', function(e) {

@@ -1,6 +1,6 @@
          const CONFIG = {
-            clientName: "Private",
-            clientLink: "privatedlc.xyz",
+            clientName: "Aporia.cc",
+            clientLink: "aporia.cc",
             accentColor: "#ff4242",
             clientLinkUrl: "http://localhost:8127/api",
 

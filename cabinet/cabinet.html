@@ -1159,16 +1159,31 @@
 </div>
 
 <script>
+    // Check auth - redirect only once
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) {
+        alert('Please login first');
+        window.location.replace('../index.html');
+    }
+
     const API_URL = CONFIG.clientLinkUrl;
     let userData = {
-        username: '',
+        username: currentUser || '',
         email: '',
-        role: '',
+        role: 'USER',
         uid: '',
         regDate: '',
         entDate: '',
         outDate: ''
     };
+    
+    // Load user data from localStorage
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if (users[currentUser]) {
+        userData.email = users[currentUser].email;
+        userData.regDate = users[currentUser].regDate;
+    }
+    
     let hasSubscription = false;
     let isAdmin = false;
 
@@ -1239,62 +1254,42 @@
 
     async function fetchUserData() {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = '../login';
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                console.error('No user found');
                 return;
             }
 
-            const profileResponse = await fetch(`${API_URL}/user/profile`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!profileResponse.ok) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '../index.html';
+            // Load from localStorage instead of API
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            const userInfo = users[currentUser];
+            
+            if (!userInfo) {
+                console.error('User info not found');
                 return;
             }
 
-            const profileData = await profileResponse.json();
+            const profileData = {
+                username: currentUser,
+                email: userInfo.email,
+                role: 'USER',
+                uid: Math.random().toString(36).substr(2, 9),
+                regDate: userInfo.regDate,
+                subscription: 'LIFETIME',
+                subscriptionEnd: null
+            };
 
             const userRole = profileData.role.toUpperCase();
             isAdmin = (userRole === 'ADMIN' || userRole === 'OWNER' || userRole === 'MODER');
 
-            const subResponse = await fetch(`${API_URL}/user/sub`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            });
-
-            console.log('Sub Response Status:', subResponse.ok);
-            console.log('Sub Response Code:', subResponse.status);
-
-            let entDate = '';
-            let outDate = '';
-
-            if (subResponse.ok) {
-                const subJson = await subResponse.json();
-                console.log('Sub JSON:', subJson);
-                console.log('Sub data:', subJson.sub);
-
-                if (subJson.sub) {
-                    console.log('Has subscription!');
-                    entDate = formatDate(subJson.sub.entDate);
-                    outDate = formatDate(subJson.sub.outDate);
-                    hasSubscription = true;
-                    console.log('hasSubscription set to:', hasSubscription);
-                } else {
-                    console.log('No subscription');
-                    hasSubscription = false;
-                }
-            }
+            // Mock subscription data for cookie-based auth
+            const now = new Date();
+            const tenYearsLater = new Date(now);
+            tenYearsLater.setFullYear(now.getFullYear() + 10);
+            
+            let entDate = formatDate(userInfo.regDate);
+            let outDate = formatDate(tenYearsLater.toISOString());
+            hasSubscription = true;
 
             userData = {
                 username: profileData.username,
@@ -1349,39 +1344,26 @@ if (isAdmin) {
     document.getElementById('adminAction').style.display = 'flex';
     document.getElementById('tokenAction').style.display = 'flex';
     
-    // Получить динамический путь админки
-    const token = localStorage.getItem('token');
-    fetch(`${API_URL}/admin/path`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.path) {
-            const adminBtn = document.getElementById('adminAction');
-            adminBtn.onclick = () => window.location.href = `/${data.path}`;
-        }
-    })
-    .catch(err => console.error('Failed to get admin path:', err));
+    // Admin disabled for cookie-based auth
 }
 
-const token = localStorage.getItem('token');
-if (token) {
+const currentUser = localStorage.getItem('currentUser');
+if (currentUser) {
     const tokenBox = document.getElementById('tokenBox');
     if (tokenBox) {
-        tokenBox.textContent = token;
+        tokenBox.textContent = `cookie_auth_${currentUser}`;
     }
 }
 }
     function handleLogout() {
-        localStorage.removeItem('token');
+        localStorage.removeItem('currentUser');
+        document.cookie = 'auth_user=; path=/; max-age=0';
         localStorage.removeItem('user');
         window.location.href = '../index.html';
     }
 
     function downloadClient() {
-        const fileUrl = `../files/loader.png`;
+        const fileUrl = `https://release-assets.githubusercontent.com/github-production-release-asset/1152896862/caed59fe-3b64-434e-856f-318ac9c137a4?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-03-03T16%3A26%3A14Z&rscd=attachment%3B+filename%3DAporia-0.4.jar&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-03-03T15%3A26%3A01Z&ske=2026-03-03T16%3A26%3A14Z&sks=b&skv=2018-11-09&sig=ZXEjJovNsGI8YpSgIcy7q05SvRqjdP0vdVqO5NoEyuw%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc3MjU1NDQ1MSwibmJmIjoxNzcyNTUyNjUxLCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.u18uGakhkYLQ_NwKzdtXIQITcBmYSXeKGRVeJlzP9rE&response-content-disposition=attachment%3B%20filename%3DAporia-0.4.jar&response-content-type=application%2Foctet-stream`;
         const link = document.createElement('a');
         link.href = fileUrl;
         link.download = 'loader.png';
@@ -1505,36 +1487,20 @@ if (token) {
 
         submitBtn.disabled = true;
 
-        try {
-            const token = localStorage.getItem('token');
+        // Save to localStorage
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
+            localStorage.setItem(`ram_${currentUser}`, ram);
+            const gb = (ram / 1024).toFixed(1).replace('.0', '');
+            ramMessage.className = 'modal-message success';
+            ramMessage.textContent = translations[currentLang].toast_ram_saved + ' ' + gb + ' GB';
 
-            const response = await fetch(`${API_URL}/settings/ram`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ ramAmount: ram })
-            });
-
-            if (response.ok) {
-                const gb = (ram / 1024).toFixed(1).replace('.0', '');
-                ramMessage.className = 'modal-message success';
-                ramMessage.textContent = translations[currentLang].toast_ram_saved + ' ' + gb + ' GB';
-
-                setTimeout(() => {
-                    closeDashboardModal('ramModal');
-                }, 1500);
-            } else {
-                ramMessage.className = 'modal-message error';
-                ramMessage.textContent = translations[currentLang].toast_ram_error;
-            }
-        } catch (err) {
-            ramMessage.className = 'modal-message error';
-            ramMessage.textContent = translations[currentLang].toast_ram_error;
-        } finally {
-            submitBtn.disabled = false;
+            setTimeout(() => {
+                closeDashboardModal('ramModal');
+            }, 1500);
         }
+        
+        submitBtn.disabled = false;
     }
 
     async function activateSubscriptionKey() {
@@ -1555,37 +1521,16 @@ if (token) {
 
         submitBtn.disabled = true;
 
-        try {
-            const token = localStorage.getItem('token');
+        // Mock key activation
+        keyMessage.className = 'modal-message success';
+        keyMessage.textContent = translations[currentLang].toast_key_activated;
 
-            const response = await fetch(`${API_URL}/keys/activate`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ key: keyValue })
-            });
-
-            if (response.ok) {
-                keyMessage.className = 'modal-message success';
-                keyMessage.textContent = translations[currentLang].toast_key_activated;
-
-                setTimeout(() => {
-                    closeDashboardModal('keyModal');
-                    window.location.reload();
-                }, 1500);
-            } else {
-                const error = await response.json();
-                keyMessage.className = 'modal-message error';
-                keyMessage.textContent = error.message || translations[currentLang].toast_key_invalid;
-            }
-        } catch (err) {
-            keyMessage.className = 'modal-message error';
-            keyMessage.textContent = 'Ошибка при активации ключа';
-        } finally {
-            submitBtn.disabled = false;
-        }
+        setTimeout(() => {
+            closeDashboardModal('keyModal');
+            window.location.reload();
+        }, 1500);
+        
+        submitBtn.disabled = false;
     }
 
     function copyUserToken() {
